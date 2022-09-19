@@ -13,11 +13,12 @@ import logging
 
 def check_address(address: str):
     """
-    gaiad keys parse <address>
+    hid-noded keys parse <address>
     """
-    check = subprocess.run(["gaiad", "keys", "parse",
+    check = subprocess.run(["hid-noded", "keys", "parse",
                             f"{address}",
-                            '--output=json'],
+                            '--output=json',
+                            '--keyring-backend=test'],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            text=True)
     try:
@@ -35,9 +36,9 @@ def check_address(address: str):
 
 def get_balance(address: str, node: str, chain_id: str):
     """
-    gaiad query bank balances <address> <node> <chain-id>
+    hid-noded query bank balances <address> <node> <chain-id>
     """
-    balance = subprocess.run(["gaiad", "query", "bank", "balances",
+    balance = subprocess.run(["hid-noded", "query", "bank", "balances",
                               f"{address}",
                               f"--node={node}",
                               f"--chain-id={chain_id}",
@@ -59,10 +60,10 @@ def get_balance(address: str, node: str, chain_id: str):
 
 def get_node_status(node: str):
     """
-    gaiad status <node>
+    hid-noded status <node>
     """
     status = subprocess.run(
-        ['gaiad', 'status', f'--node={node}'],
+        ['hid-noded', 'status', f'--node={node}'],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     try:
@@ -85,17 +86,17 @@ def get_node_status(node: str):
 
 def get_tx_info(hash_id: str, node: str, chain_id: str):
     """
-    gaiad query tx <tx-hash> <node> <chain-id>
+    hid-noded query tx <tx-hash> <node> <chain-id>
     """
-    tx_gaia = subprocess.run(['gaiad', 'query', 'tx',
+    tx_hid_noded = subprocess.run(['hid-noded', 'query', 'tx',
                               f'{hash_id}',
                               f'--node={node}',
                               f'--chain-id={chain_id}',
                               '--output=json'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
-        tx_gaia.check_returncode()
-        tx_response = json.loads(tx_gaia.stdout)
+        tx_hid_noded.check_returncode()
+        tx_response = json.loads(tx_hid_noded.stdout)
         tx_body = tx_response['tx']['body']['messages'][0]
         tx_out = {}
         tx_out['height'] = tx_response['height']
@@ -115,7 +116,7 @@ def get_tx_info(hash_id: str, node: str, chain_id: str):
             return None
         return tx_out
     except subprocess.CalledProcessError as cpe:
-        output = str(tx_gaia.stderr).split('\n', maxsplit=1)
+        output = str(tx_hid_noded.stderr).split('\n', maxsplit=1)
         logging.error("%s[%s]", cpe, output)
         raise cpe
     except (TypeError, KeyError) as err:
@@ -132,12 +133,12 @@ def tx_send(request: dict):
     - "fees"
     - "node"
     - "chain_id"
-    gaiad tx bank send <from address> <to address> <amount>
+    hid-noded tx bank send <from address> <to address> <amount>
                        <fees> <node> <chain-id>
                        --keyring-backend=test -y
 
     """
-    tx_gaia = subprocess.run(['gaiad', 'tx', 'bank', 'send',
+    tx_hid_noded = subprocess.run(['hid-noded', 'tx', 'bank', 'send',
                               f'{request["sender"]}',
                               f'{request["recipient"]}',
                               f'{request["amount"]}',
@@ -149,15 +150,15 @@ def tx_send(request: dict):
                               '-y'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
-        tx_gaia.check_returncode()
-        response = json.loads(tx_gaia.stdout)
+        tx_hid_noded.check_returncode()
+        response = json.loads(tx_hid_noded.stdout)
         return response['txhash']
     except subprocess.CalledProcessError as cpe:
-        output = str(tx_gaia.stderr).split('\n', maxsplit=1)
+        output = str(tx_hid_noded.stderr).split('\n', maxsplit=1)
         logging.error("%s[%s]", cpe, output)
         raise cpe
     except (TypeError, KeyError) as err:
-        output = tx_gaia.stderr
+        output = tx_hid_noded.stderr
         logging.critical(
             'Could not read %s in tx response: %s', err, output)
         raise err

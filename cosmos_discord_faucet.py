@@ -12,7 +12,7 @@ from tabulate import tabulate
 import aiofiles as aiof
 import toml
 import discord
-import gaia_calls as gaia
+import hidnode_calls as hidnode
 
 # Turn Down Discord Logging
 disc_log = logging.getLogger('discord')
@@ -28,7 +28,9 @@ config = toml.load('config.toml')
 try:
     ADDRESS_PREFIX = config['cosmos']['prefix']
     REQUEST_TIMEOUT = int(config['discord']['request_timeout'])
-    DISCORD_TOKEN = str(config['discord']['bot_token'])
+    with open("./tokenfile") as f:
+        DISCORD_TOKEN = f.read().splitlines()[0]
+    
     LISTENING_CHANNELS = list(
         config['discord']['channels_to_listen'].split(','))
     DENOM = str(config['cosmos']['denomination'])
@@ -59,7 +61,8 @@ help_msg = '**List of available commands:**\n' \
     f'`$balance [cosmos address] {TESTNET_OPTIONS}`'
 
 
-client = discord.Client()
+intents = discord.Intents.default()
+client = discord.Client(intents=intents)
 
 
 async def save_transaction_statistics(transaction: str):
@@ -75,7 +78,7 @@ async def get_faucet_balance(testnet: dict):
     """
     Returns the uatom balance
     """
-    balances = gaia.get_balance(
+    balances = hidnode.get_balance(
         address=testnet['faucet_address'],
         node=testnet['node_url'],
         chain_id=testnet['chain_id'])
@@ -99,10 +102,10 @@ async def balance_request(message, testnet: dict):
 
     try:
         # check address is valid
-        result = gaia.check_address(address)
+        result = hidnode.check_address(address)
         if result['human'] == ADDRESS_PREFIX:
             try:
-                balance = gaia.get_balance(
+                balance = hidnode.get_balance(
                     address=address,
                     node=testnet["node_url"],
                     chain_id=testnet["chain_id"])
@@ -110,11 +113,11 @@ async def balance_request(message, testnet: dict):
                 reply = reply + tabulate(balance)
                 reply = reply + '\n```\n'
             except Exception:
-                reply = '❗ gaia could not handle your request'
+                reply = '❗ hidnode could not handle your request'
         else:
             reply = f'❗ Expected `{ADDRESS_PREFIX}` prefix'
     except Exception:
-        reply = '❗ gaia could not verify the address'
+        reply = '❗ hidnode could not verify the address'
     await message.reply(reply)
 
 
@@ -124,8 +127,8 @@ async def faucet_status(message, testnet: dict):
     """
     reply = ''
     try:
-        node_status = gaia.get_node_status(node=testnet['node_url'])
-        balance = gaia.get_balance(
+        node_status = hidnode.get_node_status(node=testnet['node_url'])
+        balance = hidnode.get_balance(
             address=testnet['faucet_address'],
             node=testnet['node_url'],
             chain_id=testnet['chain_id'])
@@ -137,7 +140,7 @@ async def faucet_status(message, testnet: dict):
                 f'```'
             reply = status
     except Exception:
-        reply = '❗ gaia could not handle your request'
+        reply = '❗ hidnode could not handle your request'
     await message.reply(reply)
 
 
@@ -155,7 +158,7 @@ async def transaction_info(message, testnet: dict):
     hash_id = hash_id[0]
     if len(hash_id) == 64:
         try:
-            res = gaia.get_tx_info(
+            res = hidnode.get_tx_info(
                 hash_id=hash_id,
                 node=testnet['node_url'],
                 chain_id=testnet['chain_id'])
@@ -166,7 +169,7 @@ async def transaction_info(message, testnet: dict):
                 f'Height:  {res["height"]}\n```'
 
         except Exception:
-            reply = '❗ gaia could not handle your request'
+            reply = '❗ hidnode could not handle your request'
     else:
         reply = f'❗ Hash ID must be 64 characters long, received `{len(hash_id)}`'
     await message.reply(reply)
@@ -263,12 +266,12 @@ async def token_request(message, testnet: dict):
     # Check address
     try:
         # check address is valid
-        result = gaia.check_address(address)
+        result = hidnode.check_address(address)
         if result['human'] != ADDRESS_PREFIX:
             await message.reply(f'❗ Expected `{ADDRESS_PREFIX}` prefix')
             return
     except Exception:
-        await message.reply('❗ gaia could not verify the address')
+        await message.reply('❗ hidnode could not verify the address')
         return
 
     requester = message.author
@@ -285,8 +288,8 @@ async def token_request(message, testnet: dict):
                        'chain_id': testnet['chain_id'],
                        'node': testnet['node_url']}
             try:
-                # Make gaia call and send the response back
-                transfer = gaia.tx_send(request)
+                # Make hidnode call and send the response back
+                transfer = hidnode.tx_send(request)
                 logging.info('%s requested tokens for %s in %s',
                              requester, address, testnet['name'])
                 now = datetime.datetime.now()
@@ -340,12 +343,7 @@ async def on_message(message):
         await message.reply(help_msg)
         return
 
-    # Notify users of vega shutdown
-    if message.content[0] == ('$') and 'vega' in message.content.lower():
-        await message.reply('The Vega testnet is no longer active as of April 14, 2022. '
-                            'Please use Theta instead.')
-        return
-
+    print("Message Content: ", message.content)
     # Respond to commands
     message_chain = message.content.split()[-1]
     if message_chain in list(testnets.keys()):
