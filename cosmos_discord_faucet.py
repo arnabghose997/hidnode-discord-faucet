@@ -50,7 +50,7 @@ REJECT_EMOJI = '🚫'
 
 help_msg = '**List of available commands:**\n' \
     '1. Request tokens through the faucet:\n' \
-    f'`$request [cosmos address] {TESTNET_OPTIONS}`\n\n' \
+    f'`$request [hidnode testnet address] {TESTNET_OPTIONS}`\n\n' \
     '2. Request the faucet and node status:\n' \
     f'`$faucet_status {TESTNET_OPTIONS}`\n\n' \
     '3. Request the faucet address: \n' \
@@ -58,7 +58,7 @@ help_msg = '**List of available commands:**\n' \
     '4. Request information for a specific transaction:\n'\
     f'`$tx_info [transaction hash ID] {TESTNET_OPTIONS}`\n\n' \
     '5. Request the address balance:\n' \
-    f'`$balance [cosmos address] {TESTNET_OPTIONS}`'
+    f'`$balance [hidnode testnet address] {TESTNET_OPTIONS}`'
 
 
 intents = discord.Intents.default()
