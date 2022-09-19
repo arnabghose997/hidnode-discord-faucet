@@ -28,7 +28,7 @@ config = toml.load('config.toml')
 try:
     ADDRESS_PREFIX = config['cosmos']['prefix']
     REQUEST_TIMEOUT = int(config['discord']['request_timeout'])
-    with open("./tokenfile") as f:
+    with open("../hrct/tokenfile") as f:
         DISCORD_TOKEN = f.read().splitlines()[0]
     
     LISTENING_CHANNELS = list(
